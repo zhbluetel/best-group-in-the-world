@@ -5,7 +5,10 @@
  * converting a matching open Lead, or creating and immediately converting a new Lead when
  * neither exists. This org has Person Accounts enabled, so a newly created Lead is converted
  * with no Company value, which Salesforce converts into a Person Account rather than a
- * Business Account. Opportunity and line item creation are added in a follow-up commit.
+ * Business Account. It then creates an Opportunity with OpportunityLineItems for the
+ * requested products, priced from Product2.Price__c. Each line still references a Standard
+ * Price Book entry, since OpportunityLineItem requires one regardless of where the charged
+ * price comes from.
  * All queries use WITH USER_MODE, and all DML uses AccessLevel.USER_MODE, for CRUD/FLS enforcement.
  *
  * Authentication: OAuth 2.0 via Connected App
@@ -20,13 +23,17 @@ global with sharing class BuyRestResource {
     private static final String ERROR_MISSING_PRODUCTS = 'At least one product is required in the products array.';
     private static final String ERROR_INSUFFICIENT_ACCESS = 'Insufficient access to perform this operation.';
     private static final String ERROR_NO_CONVERTIBLE_STATUS = 'No convertible Lead status is configured in this org.';
+    private static final String ERROR_NO_PRICEBOOK = 'No Standard Price Book is configured in this org.';
+    private static final String ERROR_NO_VALID_PRODUCTS = 'None of the requested products could be found or priced.';
     private static final String DEFAULT_LEAD_LAST_NAME = 'Unknown';
     private static final String DEFAULT_ACCOUNT_NAME = 'Unknown';
+    private static final String OPPORTUNITY_STAGE = 'Closed Won';
 
     // ─── POST — Buy ───────────────────────────────────────────────────────
 
     /**
-     * Validates the request and hands it off to the purchase pipeline.
+     * Converts an enquiry into a purchase: resolves the email to an Account, then creates
+     * an Opportunity with line items for the requested products.
      * POST /services/apexrest/buy
      * @return ApiResponse with the resulting leadId/accountId/opportunityId and a per-product result list
      */
@@ -65,22 +72,150 @@ global with sharing class BuyRestResource {
     // ─── Private Helpers — Orchestration ────────────────────────────────
 
     /**
-     * Resolves the requesting email to an Account. Opportunity and line item creation for
-     * the requested products are added in a follow-up commit.
+     * Resolves the requesting email to an Account, then creates an Opportunity and its
+     * line items for every requested product that can be found and priced. When none of
+     * the requested products can be fulfilled, no Opportunity is created.
      * @param payload Parsed request body
      * @param res The active RestResponse, mutated with the resulting status code
-     * @return ApiResponse describing the outcome
+     * @return ApiResponse describing the outcome, including per-product results
      */
     private static ApiResponse processPurchase(BuyRequest payload, RestResponse res) {
         AccountResolution resolution = resolveAccount(payload.email);
 
-        res.statusCode = 501;
+        Id standardPricebookId = getStandardPricebookId();
+        if (standardPricebookId == null) {
+            throw new BuyResourceException(ERROR_NO_PRICEBOOK);
+        }
+
+        Map<String, ProductPricing> pricingByProductKey = getProductPricingByProductKey(
+            payload.products,
+            standardPricebookId
+        );
+        LineItemEvaluation evaluation = evaluateLineItems(payload.products, pricingByProductKey);
+
+        if (evaluation.validLineItems.isEmpty()) {
+            throw new BuyResourceException(ERROR_NO_VALID_PRODUCTS);
+        }
+
+        Id opportunityId = createOpportunity(resolution, standardPricebookId);
+        insertLineItems(opportunityId, evaluation, pricingByProductKey);
+
+        Integer successCount = countSuccesses(evaluation.results);
+        res.statusCode = successCount == evaluation.results.size() ? 201 : 207;
+
         ApiResponse response = new ApiResponse();
-        response.success = false;
-        response.message = 'Opportunity and line item creation is not implemented yet.';
+        response.success = successCount > 0;
+        response.message = successCount + ' of ' + evaluation.results.size() + ' line item(s) added.';
         response.leadId = resolution.leadId;
         response.accountId = resolution.accountId;
+        response.opportunityId = opportunityId;
+        response.results = evaluation.results;
         return response;
+    }
+
+    /**
+     * Validates each requested product line against its resolved pricing, splitting
+     * requests into a full per-product result list and the subset that passed validation.
+     * @param products Requested product line items
+     * @param pricingByProductKey Pricing resolved by getProductPricingByProductKey
+     * @return The per-product results and the subset of requests eligible for insertion
+     */
+    private static LineItemEvaluation evaluateLineItems(
+        List<BuyLineItemRequest> products,
+        Map<String, ProductPricing> pricingByProductKey
+    ) {
+        LineItemEvaluation evaluation = new LineItemEvaluation();
+
+        for (BuyLineItemRequest item : products) {
+            BuyLineResult result = new BuyLineResult();
+            result.productKey = item.productKey;
+            result.quantity = item.quantity;
+
+            if (item.quantity == null || item.quantity <= 0) {
+                result.success = false;
+                result.message = 'Quantity must be a positive number.';
+            } else if (!pricingByProductKey.containsKey(item.productKey)) {
+                result.success = false;
+                result.message = 'Product not found, not priced, or not linked to the Standard Price Book: '
+                    + item.productKey;
+            } else {
+                result.success = true;
+                result.message = 'Line item added.';
+                evaluation.validLineItems.add(item);
+            }
+            evaluation.results.add(result);
+        }
+        return evaluation;
+    }
+
+    /**
+     * Creates the Opportunity that the requested product lines will be attached to.
+     * @param resolution The resolved Account to attach the Opportunity to
+     * @param standardPricebookId Id of the org's Standard Price Book
+     * @return The Id of the newly inserted Opportunity
+     */
+    private static Id createOpportunity(AccountResolution resolution, Id standardPricebookId) {
+        Opportunity opportunity = new Opportunity(
+            Name = resolution.accountName + ' - Plushie Order',
+            AccountId = resolution.accountId,
+            StageName = OPPORTUNITY_STAGE,
+            CloseDate = Date.today(),
+            Pricebook2Id = standardPricebookId
+        );
+
+        Database.SaveResult opportunitySaveResult = Database.insert(opportunity, false, AccessLevel.USER_MODE);
+        if (!opportunitySaveResult.isSuccess()) {
+            throw new BuyResourceException(
+                'Unable to create Opportunity: ' + opportunitySaveResult.getErrors()[0].getMessage()
+            );
+        }
+        return opportunitySaveResult.getId();
+    }
+
+    /**
+     * Bulk-inserts an OpportunityLineItem for each valid product line, then reflects any
+     * per-line DML failures back onto evaluation.results.
+     * @param opportunityId Id of the Opportunity to attach line items to
+     * @param evaluation Result of evaluateLineItems, mutated with any DML failures
+     * @param pricingByProductKey Pricing resolved by getProductPricingByProductKey
+     */
+    private static void insertLineItems(
+        Id opportunityId,
+        LineItemEvaluation evaluation,
+        Map<String, ProductPricing> pricingByProductKey
+    ) {
+        List<OpportunityLineItem> lineItemsToInsert = new List<OpportunityLineItem>();
+        for (BuyLineItemRequest item : evaluation.validLineItems) {
+            ProductPricing pricing = pricingByProductKey.get(item.productKey);
+            lineItemsToInsert.add(new OpportunityLineItem(
+                OpportunityId = opportunityId,
+                PricebookEntryId = pricing.pricebookEntryId,
+                Quantity = item.quantity,
+                UnitPrice = pricing.unitPrice
+            ));
+        }
+
+        List<Database.SaveResult> lineItemSaveResults = Database.insert(
+            lineItemsToInsert,
+            false,
+            AccessLevel.USER_MODE
+        );
+        applyLineItemSaveResults(evaluation.results, evaluation.validLineItems, lineItemSaveResults);
+    }
+
+    /**
+     * Counts how many product line results were marked successful.
+     * @param results Per-product result list to count successes within
+     * @return The number of results marked successful
+     */
+    private static Integer countSuccesses(List<BuyLineResult> results) {
+        Integer successCount = 0;
+        for (BuyLineResult result : results) {
+            if (result.success) {
+                successCount++;
+            }
+        }
+        return successCount;
     }
 
     // ─── Private Helpers — Account Resolution ───────────────────────────
@@ -217,6 +352,100 @@ global with sharing class BuyRestResource {
         return convertedStatuses[0].MasterLabel;
     }
 
+    // ─── Private Helpers — Product Pricing & Line Items ─────────────────
+
+    /**
+     * Bulk-resolves pricing for every requested product in one query: the charged price comes
+     * from Product2.Price__c, while the linked Standard Price Book entry Id is only carried
+     * along because OpportunityLineItem requires a PricebookEntryId regardless of price source.
+     * A product with no Price__c or no active Standard Price Book entry is left out of the map.
+     * @param products Requested product line items
+     * @param standardPricebookId Id of the org's Standard Price Book
+     * @return Map of ProductCode to its resolved pricing, for products that have one
+     */
+    private static Map<String, ProductPricing> getProductPricingByProductKey(
+        List<BuyLineItemRequest> products,
+        Id standardPricebookId
+    ) {
+        Set<String> productKeys = new Set<String>();
+        for (BuyLineItemRequest item : products) {
+            productKeys.add(item.productKey);
+        }
+
+        List<Product2> matchingProducts = [
+            SELECT ProductCode, Price__c, (
+                SELECT Id
+                FROM PricebookEntries
+                WHERE Pricebook2Id = :standardPricebookId AND IsActive = true
+                LIMIT 1
+            )
+            FROM Product2
+            WHERE ProductCode IN :productKeys
+            WITH USER_MODE
+        ];
+
+        Map<String, ProductPricing> pricingByProductKey = new Map<String, ProductPricing>();
+        for (Product2 product : matchingProducts) {
+            if (product.Price__c == null || product.PricebookEntries.isEmpty()) {
+                continue;
+            }
+            ProductPricing pricing = new ProductPricing();
+            pricing.pricebookEntryId = product.PricebookEntries[0].Id;
+            pricing.unitPrice = product.Price__c;
+            pricingByProductKey.put(product.ProductCode, pricing);
+        }
+        return pricingByProductKey;
+    }
+
+    /**
+     * Applies OpportunityLineItem DML outcomes back onto the matching per-product result,
+     * looked up by productKey; only called for the subset of items that passed pricing.
+     * @param results Full per-product result list, one entry per requested product
+     * @param validLineItems The subset of requests that were inserted, in insertion order
+     * @param lineItemSaveResults DML results for validLineItems, in the same order
+     */
+    private static void applyLineItemSaveResults(
+        List<BuyLineResult> results,
+        List<BuyLineItemRequest> validLineItems,
+        List<Database.SaveResult> lineItemSaveResults
+    ) {
+        Map<String, BuyLineResult> resultByProductKey = new Map<String, BuyLineResult>();
+        for (BuyLineResult result : results) {
+            resultByProductKey.put(result.productKey, result);
+        }
+
+        for (Integer i = 0; i < lineItemSaveResults.size(); i++) {
+            Database.SaveResult saveResult = lineItemSaveResults[i];
+            if (saveResult.isSuccess()) {
+                continue;
+            }
+            BuyLineResult result = resultByProductKey.get(validLineItems[i].productKey);
+            result.success = false;
+            result.message = 'Line item could not be saved: ' + saveResult.getErrors()[0].getMessage();
+        }
+    }
+
+    /**
+     * Looks up the org's Standard Price Book, required before Opportunity line items can be priced.
+     * In test context, SOQL cannot see the Standard Price Book unless Test.getStandardPricebookId()
+     * is called instead, so tests take that path rather than the normal query.
+     * @return The Id of the org's Standard Price Book, or null when none is visible to the running user
+     */
+    private static Id getStandardPricebookId() {
+        if (Test.isRunningTest()) {
+            return Test.getStandardPricebookId();
+        }
+
+        List<Pricebook2> standardPricebooks = [
+            SELECT Id
+            FROM Pricebook2
+            WHERE IsStandard = true
+            WITH USER_MODE
+            LIMIT 1
+        ];
+        return standardPricebooks.isEmpty() ? null : standardPricebooks[0].Id;
+    }
+
     /**
      * Builds the failed ApiResponse envelope for an error branch and sets the response status code.
      * @param res The active RestResponse, mutated with statusCode
@@ -258,6 +487,24 @@ global with sharing class BuyRestResource {
         global String message;
         global String productKey;
         global Integer quantity;
+    }
+
+    /**
+     * A product's resolved pricing for a purchase: the price to charge (from Product2.Price__c)
+     * and the Standard Price Book entry Id that OpportunityLineItem requires as a reference.
+     */
+    private class ProductPricing {
+        private Id pricebookEntryId;
+        private Decimal unitPrice;
+    }
+
+    /**
+     * The outcome of validating requested product lines: the full per-product result list,
+     * and the subset of requests eligible for insertion as OpportunityLineItems.
+     */
+    private class LineItemEvaluation {
+        private List<BuyLineResult> results = new List<BuyLineResult>();
+        private List<BuyLineItemRequest> validLineItems = new List<BuyLineItemRequest>();
     }
 
     /**
