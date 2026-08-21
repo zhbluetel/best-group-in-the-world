@@ -37,7 +37,7 @@ export default function ProductInformationPage() {
             {paragraph}
           </p>
         ))}
-        <Link href="/" className="product-cta">
+        <Link href="/register" className="product-cta">
           Join the waitlist
         </Link>
 
