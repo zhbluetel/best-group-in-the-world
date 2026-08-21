@@ -6,27 +6,29 @@ import Image from "next/image";
 interface BubbleConfig {
   src: string;
   alt: string;
-  baseSize: number;
-  pulse: number;
+  minSize: number;
+  maxSize: number;
 }
 
 const BUBBLES: BubbleConfig[] = [
-  { src: "/images/George.jpg", alt: "George", baseSize: 90, pulse: 18 },
-  { src: "/images/Amber.png", alt: "Amber", baseSize: 70, pulse: 14 },
-  { src: "/images/Charlie.png", alt: "Charlie", baseSize: 110, pulse: 22 },
-  { src: "/images/Dan1.png", alt: "Dan", baseSize: 65, pulse: 13 },
-  { src: "/images/Dan2.png", alt: "Dan", baseSize: 100, pulse: 20 },
-  { src: "/images/Zac.png", alt: "Zac", baseSize: 80, pulse: 16 },
+  { src: "/images/George.jpg", alt: "George", minSize: 90, maxSize: 460 },
+  { src: "/images/Amber.png", alt: "Amber", minSize: 70, maxSize: 380 },
+  { src: "/images/Charlie.png", alt: "Charlie", minSize: 110, maxSize: 520 },
+  { src: "/images/Dan1.png", alt: "Dan", minSize: 65, maxSize: 340 },
+  { src: "/images/Dan2.png", alt: "Dan", minSize: 100, maxSize: 480 },
+  { src: "/images/Zac.png", alt: "Zac", minSize: 80, maxSize: 400 },
 ];
 
 const SPEED = 90;
-const PULSE_PERIOD = 4;
+const MIN_PULSE_PERIOD = 4;
+const MAX_PULSE_PERIOD = 8;
 
 /**
  * One bubble bouncing around the viewport, DVD-logo style. Position and size
  * are written straight to the DOM every frame (skipping React state) so the
  * animation stays smooth; the bounding box used for wall collisions is
- * recomputed each frame from the bubble's current pulsing size.
+ * recomputed each frame from the bubble's current pulsing size, which swings
+ * between minSize and maxSize on its own randomized period.
  */
 function Bubble({ config }: { config: BubbleConfig }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -38,15 +40,15 @@ function Bubble({ config }: { config: BubbleConfig }) {
     if (!wrap || !sizeEl) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    const maxSize = config.baseSize + config.pulse;
-    let x = Math.random() * (window.innerWidth - maxSize);
-    let y = Math.random() * (window.innerHeight - maxSize);
+    let x = Math.random() * Math.max(window.innerWidth - config.maxSize, 0);
+    let y = Math.random() * Math.max(window.innerHeight - config.maxSize, 0);
     const angle = Math.random() * Math.PI * 2;
     let dx = Math.cos(angle) * SPEED;
     let dy = Math.sin(angle) * SPEED;
-    const pulseFreq = (Math.PI * 2) / PULSE_PERIOD;
+    const period = MIN_PULSE_PERIOD + Math.random() * (MAX_PULSE_PERIOD - MIN_PULSE_PERIOD);
+    const pulseFreq = (Math.PI * 2) / period;
     const pulsePhase = Math.random() * Math.PI * 2;
-    let elapsed = Math.random() * PULSE_PERIOD;
+    let elapsed = Math.random() * period;
     let lastTime = performance.now();
     let frameId: number;
 
@@ -55,7 +57,8 @@ function Bubble({ config }: { config: BubbleConfig }) {
       lastTime = now;
       elapsed += dt;
 
-      const size = config.baseSize + Math.sin(elapsed * pulseFreq + pulsePhase) * config.pulse;
+      const t = 0.5 + 0.5 * Math.sin(elapsed * pulseFreq + pulsePhase);
+      const size = config.minSize + (config.maxSize - config.minSize) * t;
 
       x += dx * dt;
       y += dy * dt;
@@ -92,14 +95,8 @@ function Bubble({ config }: { config: BubbleConfig }) {
 
   return (
     <div ref={wrapRef} className="floating-bubble" aria-hidden="true">
-      <div ref={sizeRef} className="floating-bubble-size" style={{ width: config.baseSize, height: config.baseSize }}>
-        <Image
-          src={config.src}
-          alt={config.alt}
-          fill
-          sizes={`${config.baseSize + config.pulse}px`}
-          style={{ objectFit: "cover" }}
-        />
+      <div ref={sizeRef} className="floating-bubble-size" style={{ width: config.minSize, height: config.minSize }}>
+        <Image src={config.src} alt={config.alt} fill sizes={`${config.maxSize}px`} style={{ objectFit: "cover" }} />
       </div>
     </div>
   );
