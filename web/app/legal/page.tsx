@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import FloatingGeorge from "../floating-george";
+import FloatingBubbles from "../floating-bubbles";
+import JumpScare from "../jump-scare";
 import { DISCLAIMER, DOCUMENT, SECTIONS } from "./content";
 import type { LegalBlock, LegalClause, LegalSection } from "./content";
 
@@ -125,7 +126,8 @@ function Section({ section }: { section: LegalSection }) {
 export default function LegalPage() {
   return (
     <>
-      <FloatingGeorge />
+      <FloatingBubbles />
+      <JumpScare />
       <article className="legal-container">
         <header className="legal-header">
           <p className="legal-eyebrow">Legal</p>
