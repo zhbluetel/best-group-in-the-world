@@ -16,6 +16,7 @@ interface LeadCapturePayload {
   email: string;
   company?: string;
   productKeys: string[];
+  missingProductDesc?: string;
 }
 
 function requireEnv(name: string): string {
