@@ -215,6 +215,13 @@ input[type="email"]:focus {
   font-size: 1.3rem;
 }
 
+.plushie-option .card .product-image {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
 .plushie-option input[type="checkbox"]:checked ~ .card {
   border-color: var(--accent);
   background: #fff0f5;
