@@ -3,8 +3,8 @@
  * Exposes POST via @RestResource at /services/apexrest/leadCapture.
  * Accepts a single LeadCaptureRequest payload and inserts a Lead, or updates the existing
  * Lead matching the given email, storing the requested productKeys as a comma-separated
- * string on Interested_Products__c. All DML uses AccessLevel.USER_MODE for CRUD/FLS
- * enforcement.
+ * string on Interested_Products__c and missingProductDesc on Missing_Product_Description__c.
+ * All DML uses AccessLevel.USER_MODE for CRUD/FLS enforcement.
  *
  * Authentication: OAuth 2.0 via Connected App
  * Base URL: /services/apexrest/leadCapture
@@ -23,7 +23,7 @@ global with sharing class LeadCaptureEndpoint {
 
     /**
      * Captures a Lead from a JSON request body of the form
-     * {"firstName": "...", "lastName": "...", "email": "...", "company": "...", "productKeys": ["..."]}.
+     * {"firstName": "...", "lastName": "...", "email": "...", "company": "...", "productKeys": ["..."], "missingProductDesc": "..."}.
      * When email matches an existing Lead, that Lead is updated instead of creating a duplicate.
      * productKeys are concatenated into Lead.Interested_Products__c as a comma-separated string.
      * POST /services/apexrest/leadCapture
@@ -101,6 +101,7 @@ global with sharing class LeadCaptureEndpoint {
         leadRecord.Company = payload.company;
         leadRecord.LeadSource = DEFAULT_LEAD_SOURCE;
         leadRecord.Interested_Products__c = productsJoined;
+        leadRecord.Missing_Product_Description__c = payload.missingProductDesc;
 
         Database.SaveResult saveResult = isUpdate
             ? Database.update(new List<Lead>{ leadRecord }, false, AccessLevel.USER_MODE)[0]
@@ -140,6 +141,7 @@ global with sharing class LeadCaptureEndpoint {
         global String email;
         global String company;
         global List<String> productKeys;
+        global String missingProductDesc;
     }
 
     /**
