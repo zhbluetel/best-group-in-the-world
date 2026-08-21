@@ -38,6 +38,7 @@ export async function getSalesforceAuth(): Promise<SalesforceAuth> {
       client_id: clientId,
       client_secret: clientSecret,
     }),
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -54,6 +55,7 @@ export async function getSalesforceProducts(auth: SalesforceAuth): Promise<Sales
       Authorization: `Bearer ${auth.accessToken}`,
       Accept: "application/json",
     },
+    cache: "no-store",
   });
 
   if (!response.ok) {

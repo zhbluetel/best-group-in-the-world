@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSalesforceAuth, getSalesforceProducts, submitLeadCapture } from "@/lib/salesforce";
+import { getSalesforceAuth, submitLeadCapture } from "@/lib/salesforce";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -8,7 +8,7 @@ interface RegisterRequestBody {
   lastName?: unknown;
   email?: unknown;
   company?: unknown;
-  plushies?: unknown;
+  productKeys?: unknown;
   dreamPlushie?: unknown;
 }
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { firstName, lastName, email, company, plushies, dreamPlushie } = body;
+  const { firstName, lastName, email, company, productKeys, dreamPlushie } = body;
 
   if (typeof firstName !== "string" || !firstName.trim()) {
     return NextResponse.json({ error: "First name is required." }, { status: 400 });
@@ -39,8 +39,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Company must be text." }, { status: 400 });
   }
 
-  if (plushies !== undefined && (!Array.isArray(plushies) || !plushies.every((p) => typeof p === "string"))) {
-    return NextResponse.json({ error: "Plushies must be a list of strings." }, { status: 400 });
+  if (
+    productKeys !== undefined &&
+    (!Array.isArray(productKeys) || !productKeys.every((key) => typeof key === "string"))
+  ) {
+    return NextResponse.json({ error: "Product keys must be a list of strings." }, { status: 400 });
   }
 
   if (dreamPlushie !== undefined && typeof dreamPlushie !== "string") {
@@ -53,19 +56,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const auth = await getSalesforceAuth();
-    const products = await getSalesforceProducts(auth);
-
-    const selectedNames = new Set((plushies as string[] | undefined)?.map((name) => name.toLowerCase()) || []);
-    const productKeys = products
-      .filter((product) => selectedNames.has(product.productName.toLowerCase()))
-      .map((product) => product.productKey);
 
     await submitLeadCapture(auth, {
       firstName,
       lastName,
       email,
       company: (company as string) || undefined,
-      productKeys,
+      productKeys: (productKeys as string[] | undefined) || [],
     });
   } catch (err) {
     console.error("Salesforce lead capture failed:", err);
