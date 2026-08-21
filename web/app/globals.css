@@ -41,16 +41,18 @@ body {
 .site-header-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 1.5rem;
   width: 100%;
-  max-width: 880px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: 0.8rem 1.25rem;
 }
 
+/* `flex: 0 0 auto` keeps the logo at its natural width on the far left so a long
+   nav can never shrink it or overlap it. */
 .site-brand {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 0.5rem;
   font-size: 1.05rem;
@@ -68,18 +70,30 @@ body {
   color: var(--accent-dark);
 }
 
+/* `margin-left: auto` pushes the whole nav to the right edge; wrapping onto a
+   second row keeps the links evenly spaced rather than overflowing the brand. */
 .site-nav {
   display: flex;
-  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
   list-style: none;
 }
 
 .site-nav a {
-  display: block;
-  padding: 0.4rem 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  min-width: 5rem;
+  padding: 0 0.9rem;
   border-radius: 999px;
   font-size: 0.9rem;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
   color: var(--muted);
   text-decoration: none;
   transition:
