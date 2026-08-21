@@ -288,6 +288,51 @@ footer {
   color: var(--muted);
 }
 
+/* ---------- About page ---------- */
+
+.about-container {
+  width: 100%;
+  max-width: 480px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  box-shadow: 0 20px 40px rgba(226, 84, 122, 0.12);
+  text-align: center;
+}
+
+.about-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  margin-bottom: 0.75rem;
+}
+
+.about-container h1 {
+  font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+}
+
+.about-card {
+  margin: 0 auto;
+}
+
+.about-photo {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.about-card figcaption {
+  margin-top: 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
 /* ---------- Legal page ---------- */
 
 .legal-container {
