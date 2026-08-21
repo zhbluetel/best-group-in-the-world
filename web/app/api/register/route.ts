@@ -50,10 +50,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Dream plushie must be text." }, { status: 400 });
   }
 
-  if (dreamPlushie) {
-    console.log("Dream plushie suggestion:", dreamPlushie);
-  }
-
   try {
     const auth = await getSalesforceAuth();
 
@@ -61,8 +57,9 @@ export async function POST(request: NextRequest) {
       firstName,
       lastName,
       email,
-      company: (company as string) || undefined,
+      company: (company as string | undefined)?.trim() || undefined,
       productKeys: (productKeys as string[] | undefined) || [],
+      missingProductDesc: (dreamPlushie as string | undefined)?.trim() || undefined,
     });
   } catch (err) {
     console.error("Salesforce lead capture failed:", err);

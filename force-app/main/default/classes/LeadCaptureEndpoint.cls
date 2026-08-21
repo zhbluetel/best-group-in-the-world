@@ -1,10 +1,11 @@
 /**
  * REST API endpoint for capturing inbound leads from the marketing site.
  * Exposes POST via @RestResource at /services/apexrest/leadCapture.
+ * A blank company falls back to 'Unknown' on insert, and leaves an existing Lead's company untouched.
  * Accepts a single LeadCaptureRequest payload and inserts a Lead, or updates the existing
  * Lead matching the given email, storing the requested productKeys as a comma-separated
- * string on Interested_Products__c. All DML uses AccessLevel.USER_MODE for CRUD/FLS
- * enforcement.
+ * string on Interested_Products__c and missingProductDesc on Missing_Product_Description__c.
+ * All DML uses AccessLevel.USER_MODE for CRUD/FLS enforcement.
  *
  * Authentication: OAuth 2.0 via Connected App
  * Base URL: /services/apexrest/leadCapture
@@ -15,16 +16,17 @@ global with sharing class LeadCaptureEndpoint {
     // ─── Constants ────────────────────────────────────────────────────────
     private static final String ERROR_MISSING_BODY = 'Request body is required.';
     private static final String ERROR_MISSING_LAST_NAME = 'lastName is required.';
-    private static final String ERROR_MISSING_COMPANY = 'company is required.';
     private static final String ERROR_INSUFFICIENT_ACCESS = 'Insufficient access to perform this operation.';
     private static final String DEFAULT_LEAD_SOURCE = 'Web';
+    private static final String DEFAULT_COMPANY = 'Unknown';
 
     // ─── POST — Create ───────────────────────────────────────────────────
 
     /**
      * Captures a Lead from a JSON request body of the form
-     * {"firstName": "...", "lastName": "...", "email": "...", "company": "...", "productKeys": ["..."]}.
+     * {"firstName": "...", "lastName": "...", "email": "...", "company": "...", "productKeys": ["..."], "missingProductDesc": "..."}.
      * When email matches an existing Lead, that Lead is updated instead of creating a duplicate.
+     * company is optional; when blank it defaults to 'Unknown' for new Leads and is left as-is on existing ones.
      * productKeys are concatenated into Lead.Interested_Products__c as a comma-separated string.
      * POST /services/apexrest/leadCapture
      * @return ApiResponse confirming the created or updated Lead
@@ -47,10 +49,6 @@ global with sharing class LeadCaptureEndpoint {
             if (String.isBlank(payload.lastName)) {
                 return handleError(res, 400, ERROR_MISSING_LAST_NAME);
             }
-            if (String.isBlank(payload.company)) {
-                return handleError(res, 400, ERROR_MISSING_COMPANY);
-            }
-
             return createLead(payload, res);
 
         } catch (JSONException e) {
@@ -79,7 +77,7 @@ global with sharing class LeadCaptureEndpoint {
 
         if (String.isNotBlank(payload.email)) {
             List<Lead> existingLeads = [
-                SELECT Id
+                SELECT Id, Company
                 FROM Lead
                 WHERE Email = :payload.email
                 WITH USER_MODE
@@ -98,9 +96,14 @@ global with sharing class LeadCaptureEndpoint {
         leadRecord.FirstName = payload.firstName;
         leadRecord.LastName = payload.lastName;
         leadRecord.Email = payload.email;
-        leadRecord.Company = payload.company;
+        if (String.isNotBlank(payload.company)) {
+            leadRecord.Company = payload.company;
+        } else if (String.isBlank(leadRecord.Company)) {
+            leadRecord.Company = DEFAULT_COMPANY;
+        }
         leadRecord.LeadSource = DEFAULT_LEAD_SOURCE;
         leadRecord.Interested_Products__c = productsJoined;
+        leadRecord.Missing_Product_Description__c = payload.missingProductDesc;
 
         Database.SaveResult saveResult = isUpdate
             ? Database.update(new List<Lead>{ leadRecord }, false, AccessLevel.USER_MODE)[0]
@@ -140,6 +143,7 @@ global with sharing class LeadCaptureEndpoint {
         global String email;
         global String company;
         global List<String> productKeys;
+        global String missingProductDesc;
     }
 
     /**

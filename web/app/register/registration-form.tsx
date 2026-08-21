@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import type { SalesforceProduct } from "@/lib/salesforce";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -161,6 +162,10 @@ export default function RegistrationForm({ products }: { products: SalesforcePro
         <button type="submit" disabled={status === "submitting"}>
           {status === "submitting" ? "Registering..." : "Register interest"}
         </button>
+
+        <div className="ssl-badge">
+          <Image src="/images/SSLcertificate.png" alt="SSL secured" width={135} height={60} />
+        </div>
 
         <div className={`message ${status === "error" ? "error" : "success"}`}>
           {status === "success" && "Thanks for registering! We'll be in touch before launch."}
