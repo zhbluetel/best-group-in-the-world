@@ -23,12 +23,86 @@ body {
 
 body {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   background: linear-gradient(135deg, var(--bg-start), var(--bg-mid), var(--bg-end));
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0.8rem 1.25rem;
+}
+
+.site-brand {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.site-brand:hover {
+  color: var(--accent-dark);
+}
+
+.site-nav {
+  display: flex;
+  gap: 0.35rem;
+  list-style: none;
+}
+
+.site-nav a {
+  display: block;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.site-nav a:hover {
+  color: var(--accent-dark);
+  background: #fff0f5;
+}
+
+.site-nav a[aria-current="page"] {
+  color: #fff;
+  background: var(--accent);
+}
+
+.site-main {
+  flex: 1;
+  display: flex;
   padding: 2rem 1rem;
+}
+
+/* Auto margins centre the page content without clipping content taller than
+   the viewport, which `align-items: center` would. `min-width: 0` overrides the
+   automatic minimum size of a flex item, so wide content (tables, diagrams)
+   scrolls inside its own container instead of widening the page. */
+.site-main > * {
+  margin: auto;
+  min-width: 0;
 }
 
 .container {
