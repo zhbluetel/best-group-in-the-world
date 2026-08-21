@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -20,7 +21,8 @@ export default function SiteNav() {
     <header className="site-header">
       <div className="site-header-inner">
         <Link href="/" className="site-brand">
-          Plushie Pals
+          <Image src="/images/logo.png" alt="Plushie Pals" width={44} height={44} priority />
+          <span>Plushie Pals</span>
         </Link>
         <nav aria-label="Main">
           <ul className="site-nav">
