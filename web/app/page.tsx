@@ -13,7 +13,8 @@ const PLUSHIES = [
 type Status = "idle" | "submitting" | "success" | "error";
 
 export default function Home() {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [plushies, setPlushies] = useState<string[]>([]);
@@ -36,7 +37,7 @@ export default function Home() {
       const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, company, plushies, dreamPlushie }),
+        body: JSON.stringify({ firstName, lastName, email, company, plushies, dreamPlushie }),
       });
 
       const data = await response.json();
@@ -46,7 +47,8 @@ export default function Home() {
       }
 
       setStatus("success");
-      setName("");
+      setFirstName("");
+      setLastName("");
       setEmail("");
       setCompany("");
       setPlushies([]);
@@ -68,14 +70,26 @@ export default function Home() {
 
       <form onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="name">Name</label>
+          <label htmlFor="first-name">First name</label>
           <input
             type="text"
-            id="name"
-            name="name"
+            id="first-name"
+            name="firstName"
             required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="last-name">Last name</label>
+          <input
+            type="text"
+            id="last-name"
+            name="lastName"
+            required
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
           />
         </div>
 
