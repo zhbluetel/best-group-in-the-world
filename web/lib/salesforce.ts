@@ -6,7 +6,7 @@ interface SalesforceAuth {
 export interface SalesforceProduct {
   productName: string;
   productKey: string;
-  productPrice: number;
+  productPrice: number | null;
   productImageUrl: string | null;
 }
 
@@ -65,11 +65,16 @@ export async function getSalesforceProducts(auth: SalesforceAuth): Promise<Sales
   }
 
   const data = await response.json();
-  const records: Array<{ Name: string; ProductCode: string; Image_URL__c: string | null }> = data.records || [];
+  const records: Array<{
+    Name: string;
+    ProductCode: string;
+    Image_URL__c: string | null;
+    Price__c: number | null;
+  }> = data.records || [];
   return records.map((record) => ({
     productName: record.Name,
     productKey: record.ProductCode,
-    productPrice: 0,
+    productPrice: record.Price__c ?? null,
     productImageUrl: record.Image_URL__c || null,
   }));
 }
