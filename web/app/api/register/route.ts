@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSalesforceAuth, getSalesforceProducts, submitLeadCapture } from "@/lib/salesforce";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface RegisterRequestBody {
-  name?: unknown;
+  firstName?: unknown;
+  lastName?: unknown;
   email?: unknown;
   company?: unknown;
   plushies?: unknown;
@@ -19,10 +21,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { name, email, company, plushies, dreamPlushie } = body;
+  const { firstName, lastName, email, company, plushies, dreamPlushie } = body;
 
-  if (typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "Name is required." }, { status: 400 });
+  if (typeof firstName !== "string" || !firstName.trim()) {
+    return NextResponse.json({ error: "First name is required." }, { status: 400 });
+  }
+
+  if (typeof lastName !== "string" || !lastName.trim()) {
+    return NextResponse.json({ error: "Last name is required." }, { status: 400 });
   }
 
   if (typeof email !== "string" || !EMAIL_REGEX.test(email)) {
@@ -41,13 +47,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Dream plushie must be text." }, { status: 400 });
   }
 
-  console.log("New plushie interest registration:", {
-    name,
-    email,
-    company: company || null,
-    plushies: plushies || [],
-    dreamPlushie: dreamPlushie || null,
-  });
+  if (dreamPlushie) {
+    console.log("Dream plushie suggestion:", dreamPlushie);
+  }
+
+  try {
+    const auth = await getSalesforceAuth();
+    const products = await getSalesforceProducts(auth);
+
+    const selectedNames = new Set((plushies as string[] | undefined)?.map((name) => name.toLowerCase()) || []);
+    const productKeys = products
+      .filter((product) => selectedNames.has(product.productName.toLowerCase()))
+      .map((product) => product.productKey);
+
+    await submitLeadCapture(auth, {
+      firstName,
+      lastName,
+      email,
+      company: (company as string) || undefined,
+      productKeys,
+    });
+  } catch (err) {
+    console.error("Salesforce lead capture failed:", err);
+    return NextResponse.json({ error: "Failed to register interest. Please try again." }, { status: 502 });
+  }
 
   return NextResponse.json({ ok: true });
 }

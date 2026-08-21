@@ -1,0 +1,85 @@
+interface SalesforceAuth {
+  accessToken: string;
+  instanceUrl: string;
+}
+
+export interface SalesforceProduct {
+  productName: string;
+  productKey: string;
+  productPrice: number;
+}
+
+interface LeadCapturePayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  company?: string;
+  productKeys: string[];
+}
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+export async function getSalesforceAuth(): Promise<SalesforceAuth> {
+  const loginUrl = requireEnv("SF_LOGIN_URL");
+  const clientId = requireEnv("SF_CLIENT_ID");
+  const clientSecret = requireEnv("SF_CLIENT_SECRET");
+
+  const response = await fetch(`${loginUrl}/services/oauth2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Salesforce auth failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return { accessToken: data.access_token, instanceUrl: data.instance_url };
+}
+
+export async function getSalesforceProducts(auth: SalesforceAuth): Promise<SalesforceProduct[]> {
+  const response = await fetch(`${auth.instanceUrl}/services/apexrest/products`, {
+    headers: {
+      Authorization: `Bearer ${auth.accessToken}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Fetching Salesforce products failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  const records: Array<{ Name: string; ProductCode: string }> = data.records || [];
+  return records.map((record) => ({
+    productName: record.Name,
+    productKey: record.ProductCode,
+    productPrice: 0,
+  }));
+}
+
+export async function submitLeadCapture(auth: SalesforceAuth, payload: LeadCapturePayload): Promise<void> {
+  const response = await fetch(`${auth.instanceUrl}/services/apexrest/leadCapture`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${auth.accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Salesforce lead capture failed with status ${response.status}`);
+  }
+}
