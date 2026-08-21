@@ -335,6 +335,25 @@ footer {
 
 /* ---------- Legal page ---------- */
 
+.floating-george {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.floating-george img {
+  display: block;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent);
+  box-shadow: 0 8px 20px rgba(226, 84, 122, 0.35);
+}
+
 .legal-container {
   width: 100%;
   max-width: 860px;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import FloatingGeorge from "../floating-george";
 import { DISCLAIMER, DOCUMENT, SECTIONS } from "./content";
 import type { LegalBlock, LegalClause, LegalSection } from "./content";
 
@@ -123,42 +124,45 @@ function Section({ section }: { section: LegalSection }) {
  */
 export default function LegalPage() {
   return (
-    <article className="legal-container">
-      <header className="legal-header">
-        <p className="legal-eyebrow">Legal</p>
-        <h1>{DOCUMENT.title}</h1>
-        <p className="legal-entity">{DOCUMENT.entity}</p>
-        <dl className="legal-meta">
-          {DOCUMENT.meta.map((item) => (
-            <div key={item.label}>
-              <dt>{item.label}</dt>
-              <dd>{item.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </header>
+    <>
+      <FloatingGeorge />
+      <article className="legal-container">
+        <header className="legal-header">
+          <p className="legal-eyebrow">Legal</p>
+          <h1>{DOCUMENT.title}</h1>
+          <p className="legal-entity">{DOCUMENT.entity}</p>
+          <dl className="legal-meta">
+            {DOCUMENT.meta.map((item) => (
+              <div key={item.label}>
+                <dt>{item.label}</dt>
+                <dd>{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </header>
 
-      <nav className="legal-toc" aria-label="Contents">
-        <h2>Contents</h2>
-        <ol>
-          {SECTIONS.map((section) => (
-            <li key={section.id}>
-              <a href={`#${section.id}`}>
-                {section.label ? `${section.label} — ${section.title}` : section.title}
-              </a>
-            </li>
-          ))}
-        </ol>
-      </nav>
+        <nav className="legal-toc" aria-label="Contents">
+          <h2>Contents</h2>
+          <ol>
+            {SECTIONS.map((section) => (
+              <li key={section.id}>
+                <a href={`#${section.id}`}>
+                  {section.label ? `${section.label} — ${section.title}` : section.title}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
 
-      {SECTIONS.map((section) => (
-        <Section key={section.id} section={section} />
-      ))}
+        {SECTIONS.map((section) => (
+          <Section key={section.id} section={section} />
+        ))}
 
-      <aside className="legal-disclaimer">
-        <h2>Please read this bit</h2>
-        <p>{DISCLAIMER}</p>
-      </aside>
-    </article>
+        <aside className="legal-disclaimer">
+          <h2>Please read this bit</h2>
+          <p>{DISCLAIMER}</p>
+        </aside>
+      </article>
+    </>
   );
 }
