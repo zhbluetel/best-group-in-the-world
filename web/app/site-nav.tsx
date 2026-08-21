@@ -3,9 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCart } from "@/lib/cart-context";
 
 const LINKS = [
   { href: "/", label: "Home" },
+  { href: "/products", label: "Products" },
   { href: "/about", label: "About Us" },
   { href: "/legal", label: "Legal" }
 ];
@@ -16,6 +18,7 @@ const LINKS = [
  */
 export default function SiteNav() {
   const pathname = usePathname();
+  const { itemCount } = useCart();
 
   return (
     <header className="site-header">
@@ -36,6 +39,11 @@ export default function SiteNav() {
                 </li>
               );
             })}
+            <li>
+              <Link href="/basket" aria-current={pathname === "/basket" ? "page" : undefined}>
+                Basket{itemCount > 0 ? ` (${itemCount})` : ""}
+              </Link>
+            </li>
           </ul>
         </nav>
       </div>

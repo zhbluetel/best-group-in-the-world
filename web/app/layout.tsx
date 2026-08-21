@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import SiteNav from "./site-nav";
+import { CartProvider } from "@/lib/cart-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,8 +16,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SiteNav />
-        <main className="site-main">{children}</main>
+        <CartProvider>
+          <SiteNav />
+          <main className="site-main">{children}</main>
+        </CartProvider>
       </body>
     </html>
   );
