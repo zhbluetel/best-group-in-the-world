@@ -226,7 +226,7 @@ global with sharing class ProductRestResource {
         }
 
         List<Product2> records = [
-            SELECT Id, Name, ProductCode, Description, Family, IsActive, CreatedDate, LastModifiedDate
+            SELECT Id, Name, ProductCode, Description, Family, IsActive, Image_URL__c, CreatedDate, LastModifiedDate
             FROM Product2
             WHERE Id = :recordId
             WITH USER_MODE
@@ -249,7 +249,7 @@ global with sharing class ProductRestResource {
      */
     private static ApiResponse getRecordList(RestResponse res) {
         List<Product2> records = [
-            SELECT Id, Name, ProductCode, Description, Family, IsActive, CreatedDate, LastModifiedDate
+            SELECT Id, Name, ProductCode, Description, Family, IsActive, Image_URL__c, CreatedDate, LastModifiedDate
             FROM Product2
             WITH USER_MODE
             ORDER BY Name ASC

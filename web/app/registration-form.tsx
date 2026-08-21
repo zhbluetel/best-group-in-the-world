@@ -128,7 +128,13 @@ export default function RegistrationForm({ products }: { products: SalesforcePro
                     onChange={() => toggleProduct(product.productKey)}
                   />
                   <span className="card">
-                    <span className="emoji">🧸</span> {product.productName}
+                    {product.productImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img className="product-image" src={product.productImageUrl} alt={product.productName} />
+                    ) : (
+                      <span className="emoji">🧸</span>
+                    )}{" "}
+                    {product.productName}
                   </span>
                 </label>
               ))}

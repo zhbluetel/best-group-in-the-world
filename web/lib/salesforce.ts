@@ -7,6 +7,7 @@ export interface SalesforceProduct {
   productName: string;
   productKey: string;
   productPrice: number;
+  productImageUrl: string | null;
 }
 
 interface LeadCapturePayload {
@@ -63,11 +64,12 @@ export async function getSalesforceProducts(auth: SalesforceAuth): Promise<Sales
   }
 
   const data = await response.json();
-  const records: Array<{ Name: string; ProductCode: string }> = data.records || [];
+  const records: Array<{ Name: string; ProductCode: string; Image_URL__c: string | null }> = data.records || [];
   return records.map((record) => ({
     productName: record.Name,
     productKey: record.ProductCode,
     productPrice: 0,
+    productImageUrl: record.Image_URL__c || null,
   }));
 }
 
