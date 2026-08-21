@@ -23,12 +23,86 @@ body {
 
 body {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   background: linear-gradient(135deg, var(--bg-start), var(--bg-mid), var(--bg-end));
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0.8rem 1.25rem;
+}
+
+.site-brand {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.site-brand:hover {
+  color: var(--accent-dark);
+}
+
+.site-nav {
+  display: flex;
+  gap: 0.35rem;
+  list-style: none;
+}
+
+.site-nav a {
+  display: block;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.site-nav a:hover {
+  color: var(--accent-dark);
+  background: #fff0f5;
+}
+
+.site-nav a[aria-current="page"] {
+  color: #fff;
+  background: var(--accent);
+}
+
+.site-main {
+  flex: 1;
+  display: flex;
   padding: 2rem 1rem;
+}
+
+/* Auto margins centre the page content without clipping content taller than
+   the viewport, which `align-items: center` would. `min-width: 0` overrides the
+   automatic minimum size of a flex item, so wide content (tables, diagrams)
+   scrolls inside its own container instead of widening the page. */
+.site-main > * {
+  margin: auto;
+  min-width: 0;
 }
 
 .container {
@@ -212,4 +286,314 @@ footer {
   text-align: center;
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+/* ---------- Legal page ---------- */
+
+.legal-container {
+  width: 100%;
+  max-width: 860px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  box-shadow: 0 20px 40px rgba(226, 84, 122, 0.12);
+}
+
+.legal-header {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.legal-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  margin-bottom: 0.75rem;
+}
+
+.legal-header h1 {
+  font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+  line-height: 1.2;
+  margin-bottom: 0.6rem;
+}
+
+.legal-entity {
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+.legal-meta {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+.legal-meta dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.legal-meta dd {
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.legal-toc {
+  margin-top: 2rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fffafc;
+}
+
+.legal-toc h2 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.85rem;
+}
+
+.legal-toc ol {
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.legal-toc a {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  border-bottom: 1px solid transparent;
+}
+
+.legal-toc a:hover,
+.legal-toc a:focus-visible {
+  color: var(--accent-dark);
+  border-bottom-color: var(--accent);
+}
+
+.legal-section {
+  margin-top: 2.75rem;
+  scroll-margin-top: 5rem;
+}
+
+.legal-section h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  padding-bottom: 0.6rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.legal-section-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  margin-bottom: 0.2rem;
+}
+
+.legal-section > p,
+.legal-clause p {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.legal-section > p + p,
+.legal-clause p + p {
+  margin-top: 0.85rem;
+}
+
+.legal-clause {
+  margin-bottom: 1.35rem;
+}
+
+.legal-clause-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.legal-clause-number {
+  font-weight: 700;
+  color: var(--accent-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.legal-clause-heading {
+  font-weight: 700;
+}
+
+.legal-list {
+  list-style: none;
+  margin-top: 0.7rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.legal-list li {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--border);
+}
+
+.legal-table-wrap {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  min-width: 380px;
+}
+
+.legal-table th,
+.legal-table td {
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.legal-table th {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: #fffafc;
+}
+
+.legal-table tr:last-child td {
+  border-bottom: none;
+}
+
+.legal-diagram {
+  margin: 1rem 0;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fffafc;
+  overflow-x: auto;
+}
+
+.legal-diagram pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.legal-diagram figcaption {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+
+.legal-terms + .legal-terms {
+  margin-top: 1.75rem;
+}
+
+.term-chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+}
+
+.term-chips li {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  background: #fffafc;
+}
+
+.term-chips.approved li {
+  border-color: var(--accent);
+  background: #fff0f5;
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+.term-chips.prohibited li {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.legal-signature {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fffafc;
+}
+
+.legal-signature h3 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 0.85rem;
+}
+
+.legal-signature dl {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.legal-signature dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.legal-signature dt {
+  font-weight: 700;
+  min-width: 3.5rem;
+}
+
+.legal-signature dd {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.legal-disclaimer {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+  background: #fff0f5;
+}
+
+.legal-disclaimer h2 {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  margin-bottom: 0.6rem;
+}
+
+.legal-disclaimer p {
+  font-size: 0.92rem;
+  line-height: 1.65;
 }
