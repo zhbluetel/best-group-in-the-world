@@ -375,6 +375,13 @@ footer {
   overflow: hidden;
   border: 3px solid var(--accent);
   box-shadow: 0 8px 20px rgba(226, 84, 122, 0.35);
+  /* The wrapper stays click-through so only the circle itself is a target. */
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.floating-bubble-size:active {
+  border-color: var(--accent-dark);
 }
 
 .jump-scare {

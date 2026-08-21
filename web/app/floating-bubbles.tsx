@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
+
+import { playAirHorn } from "./air-horn";
 
 interface BubbleConfig {
   src: string;
@@ -16,23 +18,49 @@ const BUBBLES: BubbleConfig[] = [
   { src: "/images/Charlie.png", alt: "Charlie", minSize: 110, maxSize: 520 },
   { src: "/images/Dan1.png", alt: "Dan", minSize: 65, maxSize: 340 },
   { src: "/images/Dan2.png", alt: "Dan", minSize: 100, maxSize: 480 },
-  { src: "/images/Zac.png", alt: "Zac", minSize: 80, maxSize: 400 },
+  { src: "/images/Zac.png", alt: "Zac", minSize: 80, maxSize: 400 }
 ];
 
 const SPEED = 90;
 const MIN_PULSE_PERIOD = 4;
 const MAX_PULSE_PERIOD = 8;
 
+const SMALLEST_SIZE = Math.min(...BUBBLES.map((bubble) => bubble.minSize));
+const LARGEST_SIZE = Math.max(...BUBBLES.map((bubble) => bubble.maxSize));
+const HIGHEST_PITCH = 2.2;
+const LOWEST_PITCH = 0.55;
+
+/**
+ * Maps a bubble's on-screen size to an air-horn pitch multiplier: the smallest
+ * bubble any config can reach sounds at HIGHEST_PITCH, the largest at
+ * LOWEST_PITCH. Interpolation is geometric in both size and pitch so equal
+ * visual size ratios give equal musical intervals.
+ *
+ * @param size The bubble's current diameter in pixels.
+ * @returns The pitch multiplier to pass to the air horn.
+ */
+function pitchForSize(size: number): number {
+  const clamped = Math.min(Math.max(size, SMALLEST_SIZE), LARGEST_SIZE);
+  const t = Math.log(clamped / SMALLEST_SIZE) / Math.log(LARGEST_SIZE / SMALLEST_SIZE);
+  return HIGHEST_PITCH * Math.pow(LOWEST_PITCH / HIGHEST_PITCH, t);
+}
+
 /**
  * One bubble bouncing around the viewport, DVD-logo style. Position and size
  * are written straight to the DOM every frame (skipping React state) so the
  * animation stays smooth; the bounding box used for wall collisions is
  * recomputed each frame from the bubble's current pulsing size, which swings
- * between minSize and maxSize on its own randomized period.
+ * between minSize and maxSize on its own randomized period. Clicking the bubble
+ * sounds an air horn pitched to whatever size it currently is.
  */
 function Bubble({ config }: { config: BubbleConfig }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const sizeRef = useRef<HTMLDivElement>(null);
+  const currentSizeRef = useRef(config.minSize);
+
+  const handleClick = useCallback(() => {
+    playAirHorn(pitchForSize(currentSizeRef.current));
+  }, []);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -59,6 +87,7 @@ function Bubble({ config }: { config: BubbleConfig }) {
 
       const t = 0.5 + 0.5 * Math.sin(elapsed * pulseFreq + pulsePhase);
       const size = config.minSize + (config.maxSize - config.minSize) * t;
+      currentSizeRef.current = size;
 
       x += dx * dt;
       y += dy * dt;
@@ -94,8 +123,22 @@ function Bubble({ config }: { config: BubbleConfig }) {
   }, [config]);
 
   return (
-    <div ref={wrapRef} className="floating-bubble" aria-hidden="true">
-      <div ref={sizeRef} className="floating-bubble-size" style={{ width: config.minSize, height: config.minSize }}>
+    <div ref={wrapRef} className="floating-bubble">
+      <div
+        ref={sizeRef}
+        className="floating-bubble-size"
+        style={{ width: config.minSize, height: config.minSize }}
+        role="button"
+        tabIndex={0}
+        aria-label={`Sound the air horn for ${config.alt}`}
+        onClick={handleClick}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleClick();
+          }
+        }}
+      >
         <Image src={config.src} alt={config.alt} fill sizes={`${config.maxSize}px`} style={{ objectFit: "cover" }} />
       </div>
     </div>
