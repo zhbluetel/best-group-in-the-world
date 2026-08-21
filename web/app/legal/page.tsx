@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import FloatingBubbles from "../floating-bubbles";
+import JumpScare from "../jump-scare";
 import { DISCLAIMER, DOCUMENT, SECTIONS } from "./content";
 import type { LegalBlock, LegalClause, LegalSection } from "./content";
 
@@ -126,6 +127,7 @@ export default function LegalPage() {
   return (
     <>
       <FloatingBubbles />
+      <JumpScare />
       <article className="legal-container">
         <header className="legal-header">
           <p className="legal-eyebrow">Legal</p>
